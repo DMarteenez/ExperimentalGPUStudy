@@ -37,7 +37,7 @@ namespace ExperimentalGPUStudy
 
         static void Main(string[] args)
         {
-            const int N = 1000;
+            const int N = 1024;
 
             Stopwatch sw = new Stopwatch();
             var a = GetRandomMatrix(N, N);

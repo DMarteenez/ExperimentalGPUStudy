@@ -98,7 +98,8 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="simpleTemplates.cu" />
+    <CudaCompile Include="matrixMulGlobal.cu" />
+    <CudaCompile Include="matrixMulShared.cu" />
     <None Include="sharedmem.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
