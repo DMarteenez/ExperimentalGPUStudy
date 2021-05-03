@@ -98,6 +98,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="floydWarshall.cu" />
     <CudaCompile Include="matrixMulGlobal.cu" />
     <CudaCompile Include="matrixMulShared.cu" />
     <None Include="sharedmem.cuh" />

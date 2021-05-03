@@ -16,25 +16,42 @@
 //#define BLOCK_SIZE 32
 //
 ////GPU side
-////Each cell in output matrix has it's own thread to calculate it
-//__global__ void matrixMul(int* a, int* b, int* c, int N) {
-//	
-//	int bx = blockIdx.x; // block number by x
-//	int by = blockIdx.y; // block number by y
+////__global__ void matrixMul(float* a, float* b, float* c, float N) {
+////	
+////	int bx = blockIdx.x; // block number by x
+////	int by = blockIdx.y; // block number by y
+////	int tx = threadIdx.x; // thread number in block by x
+////	int ty = threadIdx.y; // thread number in block by y
+////	
+////	int row = N * (BLOCK_SIZE * by + ty); //row from a
+////	int col = BLOCK_SIZE * bx + tx; //col from b
+////	int ic = row + col; //element num in c
+////	float sum = 0.f;
+////
+////	//Calculate current row and column into corresponding cell of matrix c
+////	for (int k = 0; k < N; k++) {
+////		// Accumulate results for a single element
+////		sum += a[row + k] * b[k * N + col];
+////	}
+////	c[ic] = sum;
+////}
+//
+////Copied from shared version
+//__global__ void matrixMul(float* a, float* b, float* c, int N) {
+//
+//	int gx = blockIdx.x * BLOCK_SIZE + threadIdx.x; // block number by x
+//	int gy = blockIdx.y * BLOCK_SIZE + threadIdx.y; // block number by y
 //	int tx = threadIdx.x; // thread number in block by x
 //	int ty = threadIdx.y; // thread number in block by y
-//	
-//	int row = N * (BLOCK_SIZE * by + ty); //row from a
-//	int col = BLOCK_SIZE * bx + tx; //col from b
-//	int ic = row + col; //element num in c
-//	int sum = 0;
 //
-//	//Calculate current row and column into corresponding cell of matrix c
-//	for (int k = 0; k < N; k++) {
-//		// Accumulate results for a single element
-//		sum += a[row + k] * b[k * N + col];
+//	float sum = 0.f;
+//
+//	for (int i = 0; i < N; i += BLOCK_SIZE)
+//	{
+//		for (int k = 0; k < BLOCK_SIZE; k++)
+//			sum += a[gy * N + k + i] * b[(k + i) * N + gx];
 //	}
-//	c[ic] = sum;
+//	c[gy * N + gx] = sum;
 //}
 //
 ////CPU side
@@ -45,23 +62,23 @@
 //	//Timer stuff
 //	float time;
 //	cudaEvent_t start, stop;
-//	cudaEventCreate(&start); 
+//	cudaEventCreate(&start);
 //	cudaEventCreate(&stop);
 //
 //	//Matrix size in bytes
-//	size_t byteSize = N * N * sizeof(int);
+//	size_t byteSize = N * N * sizeof(float);
 //
 //	//Matrices
-//	vector<int> h_a(N * N);
-//	vector<int> h_b(N * N);
-//	vector<int> h_c(N * N);
+//	vector<float> h_a(N * N);
+//	vector<float> h_b(N * N);
+//	vector<float> h_c(N * N);
 //
 //	//Initialize matrices
 //	generate(h_a.begin(), h_a.end(), []() { return rand() % 100; });
 //	generate(h_b.begin(), h_b.end(), []() { return rand() % 100; });
 //
 //	//Allocate device memory (device = GPU)
-//	int* d_a, * d_b, * d_c;
+//	float* d_a, * d_b, * d_c;
 //	cudaMalloc(&d_a, byteSize);
 //	cudaMalloc(&d_b, byteSize);
 //	cudaMalloc(&d_c, byteSize);
@@ -81,7 +98,7 @@
 //	cudaEventRecord(start, 0);
 //
 //	//Run kernel
-//	matrixMul<<<blocks, threads>>>(d_a, d_b, d_c, N);
+//	matrixMul << <blocks, threads >> > (d_a, d_b, d_c, N);
 //
 //	cudaThreadSynchronize();
 //	cudaEventRecord(stop, 0);
@@ -102,6 +119,6 @@
 //	cudaEventDestroy(stop);
 //
 //	cout << "Done" << endl;
-//	
+//
 //	return 0;
 //}

@@ -32,5 +32,19 @@ namespace ExperimentalGPUStudy
             return c;
         }
 
+        public static void FloydWarshall(double[,] w)
+        {
+            var N = w.GetLength(0);
+            Parallel.For(0, N, (k) =>
+            {
+                for (int i = 0; i < N; i++)
+                {
+                    for (int j = 0; j < N; j++)
+                    {
+                        w[i, j] = Math.Min(w[i, j], w[i, k] + w[k, j]);
+                    }
+                }
+            });
+        }
     }
 }

@@ -44,7 +44,8 @@ namespace ExperimentalGPUStudy
             var b = GetRandomMatrix(N, N);
 
             sw.Start();
-            CPUProc.MatrixMul(a, b);
+            //CPUProc.MatrixMul(a, b);
+            CPUProc.FloydWarshall(a);
             sw.Stop();
             Console.WriteLine(sw.ElapsedMilliseconds);
 
