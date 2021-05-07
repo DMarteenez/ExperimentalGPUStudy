@@ -8,31 +8,28 @@ namespace ExperimentalGPUStudy
 {
     class CPUProc
     {
-        public static double[,] MatrixMul(double [,] a, double[,] b)
+        public static float[,] MatrixMul(float[,] a, float[,] b)
         {
-            var l = a.GetLength(0);
-            var n = b.GetLength(1);
-            var m = a.GetLength(1);
-            if (m != b.GetLength(0)) throw new Exception(message: "Wrong input matrix sizes.");
+            
+            var N = a.GetLength(1);
+            if (N != b.GetLength(0)) throw new Exception(message: "Wrong input matrix sizes.");
 
-            double[,] c = new double[l, n];
+            float[,] c = new float[N, N];
 
-            Parallel.For(0, l, (i) =>
-            {
-                for (int j = 0; j < n; j++)
+            Parallel.For(0, N * N, (i) =>
+            { 
+                c[i / N, i % N] = 0;
+                for (int r = 0; r < N; r++)
                 {
-                    c[i, j] = 0;
-                    for (int r = 0; r < m; r++)
-                    {
-                        c[i, j] += a[i, r] * b[r, j];
-                    }
+                    c[i / N, i % N] += a[i / N, r] * b[r, i % N];
                 }
+
             });
 
             return c;
         }
 
-        public static void FloydWarshall(double[,] w)
+        public static void FloydWarshall(float[,] w)
         {
             var N = w.GetLength(0);
             Parallel.For(0, N, (k) =>
