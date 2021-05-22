@@ -15,7 +15,7 @@ using namespace std;
 
 #define BLOCK_SIZE 32
 
-////GPU side
+//GPU side
 __global__ void matrixMul(float* a, float* b, float* c, int N) {
 	int gy = threadIdx.y + blockIdx.y * BLOCK_SIZE;
 	int gx = threadIdx.x + blockIdx.x * BLOCK_SIZE;
@@ -49,10 +49,15 @@ void printMatrix(vector<float> a, int N) {
 
 //CPU side
 int main() {
-	srand(time(0));
-	//Matrix size N x N
-	int N = 4096;
-
+	////Matrix size N x N
+	//const int N = 256;
+	//const int N = 512;
+	//const int N = 1024;
+	//const int N = 1536;
+	//const int N = 2048;
+	//const int N = 3072;
+	const int N = 4096;
+ 
 	//Timer stuff
 	float time;
 	cudaEvent_t start, stop;
@@ -74,6 +79,9 @@ int main() {
 	//printMatrix(h_a, N);
 	//printMatrix(h_b, N);
 
+	//Start timer
+	cudaEventRecord(start, 0);
+
 	//Allocate device memory (device = GPU)
 	float* d_a, * d_b, * d_c;
 	cudaMalloc(&d_a, byteSize);
@@ -87,21 +95,14 @@ int main() {
 	//Blocks per grid dimension
 	int BlkGrdDim = (int)ceil((float)N / BLOCK_SIZE);
 
-	//dim3 - cuda int vector https://codeyarns.com/tech/2011-02-16-cuda-dim3.html
+	//dim3 - cuda int vector
 	dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 blocks(BlkGrdDim, BlkGrdDim);
-
-	//Start timer
-	cudaEventRecord(start, 0);
 
 	//Run kernel
 	matrixMul <<<blocks, threads>>> (d_a, d_b, d_c, N);
 
 	cudaThreadSynchronize();
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&time, start, stop);
-	cout << "Time = " << time << endl << endl;
 
 	//Copy back to host
 	cudaMemcpy(h_c.data(), d_c, byteSize, cudaMemcpyDeviceToHost);
@@ -112,6 +113,12 @@ int main() {
 	cudaFree(d_a);
 	cudaFree(d_b);
 	cudaFree(d_c);
+	
+	//Stop timer
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&time, start, stop);
+	cout << "Time = " << time << endl << endl;
 
 	//Event variables destruction (lol)
 	cudaEventDestroy(start);
