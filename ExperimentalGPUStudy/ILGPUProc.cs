@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 
 namespace ExperimentalGPUStudy
@@ -172,7 +173,7 @@ namespace ExperimentalGPUStudy
             var bufSize = N * N;
             MemoryBuffer<float> d_graphMinDist = gpu.Allocate<float>(bufSize);
 
-            d_graphMinDist.CopyFrom(FlatternArr(a), 0, Index1.Zero, a.Length);
+            d_graphMinDist.CopyFrom(FlatternArr(a), 0, Index1.Zero, bufSize);
 
             for (int k = 0; k < N; k++)
             {
@@ -278,7 +279,7 @@ namespace ExperimentalGPUStudy
             var bufSize = N * N;
             MemoryBuffer<float> d_graphMinDist = gpu.Allocate<float>(bufSize);
 
-            d_graphMinDist.CopyFrom(FlatternArr(a), 0, Index1.Zero, a.Length);
+            d_graphMinDist.CopyFrom(FlatternArr(a), 0, Index1.Zero, bufSize);
 
             sw.Restart();
 
@@ -293,5 +294,158 @@ namespace ExperimentalGPUStudy
             return d_graphMinDist.GetAsArray();
         }
 
+        private static void OddEvenSort(Index1 index, ArrayView<float> a, VariableView<byte> stopFlag, int N, bool evenArr)
+        {
+            int i = index * 2;
+            bool iterationEven = true;
+
+            while (true)
+            {
+                if (stopFlag.Value > 0)
+                    break;
+                Group.Barrier();
+                if (index == 0)
+                    stopFlag.Value = 1;
+                Group.Barrier();
+
+                if (iterationEven)
+                {
+                    //swap
+                    if (a[i] > a[i + 1])
+                    {
+                        var tmp = a[i];
+                        a[i] = a[i + 1];
+                        a[i + 1] = tmp;
+                        stopFlag.Value = 0;
+                    }
+                }
+                else
+                {
+                    if (!(evenArr && index == N / 2 - 1))
+                    {
+                        i++;
+                        //swap
+                        if (a[i] > a[i + 1])
+                        {
+                            var tmp = a[i];
+                            a[i] = a[i + 1];
+                            a[i + 1] = tmp;
+                            stopFlag.Value = 0;
+                        }
+                        i--;
+                    }
+                }
+                iterationEven = !iterationEven;
+            }
+        }
+
+        public static float[] RunOddEvenSort(float[] a)
+        {
+            int N = a.Length;
+            bool evenArr = (N % 2) == 0 ? true : false;
+
+            //Create context and accelerator
+            var gpu = new CudaAccelerator(new Context());
+
+            //Create typed launcher
+            var oddEvenKernel = gpu.LoadAutoGroupedStreamKernel<
+                Index1,
+                ArrayView<float>,
+                VariableView<byte>,
+                int,
+                bool>(OddEvenSort);
+
+            //Allocate memory
+            MemoryBuffer<float> d_a = gpu.Allocate<float>(N);
+            MemoryBuffer<byte> d_stopFlag = gpu.AllocateZero<byte>(1);
+
+            d_a.CopyFrom(a, 0, Index1.Zero, N);
+
+            //Run kernel
+            oddEvenKernel(N / 2, d_a, d_stopFlag.View.GetVariableView(0), N, evenArr);
+            gpu.Synchronize();
+
+            return d_a.GetAsArray();
+        }
+
+        private static void OddEvenSort2(Index1 index, ArrayView<float> a, VariableView<byte> stopFlag, bool iterationEven, int N, bool evenArr)
+        {
+            int i = index * 2;
+
+            if (iterationEven)
+            {
+                //swap
+                if (a[i] > a[i + 1])
+                {
+                    var tmp = a[i];
+                    a[i] = a[i + 1];
+                    a[i + 1] = tmp;
+                    stopFlag.Value++;
+                }
+            }
+            else
+            {
+                if (!(evenArr && index == N / 2 - 1))
+                {
+                    i++;
+                    //swap
+                    if (a[i] > a[i + 1])
+                    {
+                        var tmp = a[i];
+                        a[i] = a[i + 1];
+                        a[i + 1] = tmp;
+                        stopFlag.Value++;
+                    }
+                    i--;
+                }
+            }
+        }
+
+        public static float[] RunOddEvenSort2(float[] a)
+        {
+            int N = a.Length;
+            bool evenArr = (N % 2) == 0 ? true : false;
+
+            bool stopFlag = false;
+            bool iterationEven = true;
+
+            //Create context and accelerator
+            var gpu = new CudaAccelerator(new Context());
+
+            //Create typed launcher
+            var oddEvenKernel = gpu.LoadAutoGroupedStreamKernel<
+                Index1,
+                ArrayView<float>,
+                VariableView<byte>,
+                bool,
+                int,
+                bool>(OddEvenSort2);
+
+            //Allocate memory
+            MemoryBuffer<float> d_a = gpu.Allocate<float>(N);
+            MemoryBuffer<byte> d_stopFlag = gpu.AllocateZero<byte>(1);
+
+            d_a.CopyFrom(a, 0, Index1.Zero, N);
+
+            //Run kernel
+            byte[] zero_val = new byte[1];
+            zero_val[0] = 0;
+
+            while (true)
+            {
+                if (stopFlag)
+                    break;
+                stopFlag = true;
+                
+                d_stopFlag.CopyFrom(zero_val, 0, 0, 1);
+                oddEvenKernel(N / 2, d_a, d_stopFlag.View.GetVariableView(), iterationEven, N, evenArr);
+                if(d_stopFlag.GetAsArray()[0] > 0)
+                    stopFlag = false;
+
+                iterationEven = !iterationEven;
+            }
+
+            return d_a.GetAsArray();
+        }
     }
 }
