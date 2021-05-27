@@ -101,6 +101,8 @@
     <CudaCompile Include="floydWarshall.cu" />
     <CudaCompile Include="matrixMulGlobal.cu" />
     <CudaCompile Include="matrixMulShared.cu" />
+    <CudaCompile Include="oddEvenSort2.cu" />
+    <CudaCompile Include="oddEvenSort.cu" />
     <None Include="sharedmem.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -81,7 +81,7 @@ namespace ExperimentalGPUStudy
             Random rnd = new Random();
             for (int i = 0; i < n; i++)
             {
-                a[i] = (float)rnd.NextDouble(); //rnd.Next(0, 10); 
+                a[i] = (float)rnd.Next(0, 10); //rnd.NextDouble();
             }
             return a;
         }
@@ -89,58 +89,66 @@ namespace ExperimentalGPUStudy
 
         static void Main(string[] args)
         {
-            int launchIter = 5;
+            int launchIter = 11;
             int warmupLaunches = 1;
 
             ////Matrix size N x N
-            const int N = 256;
+            //const int N = 256;
             //const int N = 512;
-            //const int N = 1024;
+            const int N = 1024;
             //const int N = 1536;
             //const int N = 2048;
             //const int N = 3072;
             //const int N = 4096;
-            //const int N = 10;
 
             List<float> time = new List<float>();
-                
+
             Stopwatch sw = new Stopwatch();
-            for(int i = 0; i < launchIter; i++)
+            for (int i = 0; i < launchIter; i++)
             {
-                var a = GetRandomMatrix(N, N);
+                //var a = GetRandomMatrix(N, N);
                 //Thread.Sleep(100);
                 //var b = GetRandomMatrix(N, N);
-                var d = GetRandomArr(N);
+                var d = GetRandomArr(N * 10);
 
                 sw.Restart();
+
                 //CPUProc.RunMatrixMul(a, b);
                 //CPUProc.RunFloydWarshall(a);
                 //CPUProc.RunOddEvenSort(ref d);
+
                 //ILGPUProc.RunMatrixMul(a, b, N);
-                //LGPUProc.RunMatrixMulShared(a, b, N);
-                //ILGPUProc.RunFloydWarshall(a, N);            
-                var e = ILGPUProc.RunOddEvenSort2(d);
-                //PrintArr(e);
+                //ILGPUProc.RunMatrixMulShared(a, b, N);
+                //ILGPUProc.RunFloydWarshall(a, N);
+                ILGPUProc.RunOddEvenSort(d);
+
+                ////Kernel run time measurment
+                //ILGPUProc.RunMatrixMul(a, b, N);
+                //ILGPUProc.RunMatrixMulShared(a, b, N, ref sw);
+                //ILGPUProc.RunFloydWarshall(a, N, ref sw);  
+                //ILGPUProc.RunOddEvenSort(d, ref sw);
+                
                 sw.Stop();
+                
                 Console.WriteLine("True time = " + sw.ElapsedMilliseconds);
                 time.Add(sw.ElapsedMilliseconds);
             }
 
-            for(int i = 0; i < warmupLaunches; i++)
+            for (int i = 0; i < warmupLaunches; i++)
                 time.RemoveAt(0);
 
             float sumTime = 0;
-            foreach(var el in time)
+            foreach (var el in time)
             {
                 sumTime += el;
             }
 
             Console.WriteLine();
-            Console.WriteLine("N = " + N);
-            Console.WriteLine("Avg time = " + sumTime / (launchIter - warmupLaunches));
+            Console.WriteLine("Avg time = " + Math.Round(sumTime / (launchIter - warmupLaunches)));
 
             Console.WriteLine("Done");
             Console.ReadKey();
         }
+
     }
 }
